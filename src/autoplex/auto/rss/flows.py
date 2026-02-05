@@ -326,8 +326,9 @@ class RssMaker(Maker):
         # ===== END DEBUG LOG =====
 
         default_config = self.rss_config.model_copy(deep=True)
-        if kwargs:
-            default_config.update_parameters(kwargs)
+        # Fixed: kwargs -> fit_kwargs. The variable name in definition is **fit_kwargs
+        if fit_kwargs:
+            default_config.update_parameters(fit_kwargs)
 
         config_params = default_config.model_dump(by_alias=True, exclude_none=True)
 
