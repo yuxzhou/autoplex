@@ -15,7 +15,7 @@ import logging
 import os.path as osp
 from pathlib import Path
 
-from autoplex.mlip import MLIP_HYPERS
+from autoplex import MLIP_HYPERS
 
 @dataclass
 class RssMaker(Maker):
@@ -307,20 +307,21 @@ class RssMaker(Maker):
 
         # ===== DEBUG LOG =====
         logging.info("=" * 80)
-        logging.info("[DEBUG][MLIPFitMaker.make] Entering MLIPFitMaker.make()")
-        logging.info(f"[DEBUG][MLIPFitMaker.make] self.mlip_type: {self.mlip_type}")
-        logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters type: {type(hyperparameters)}")
-        logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters is MLIP_HYPERS default: {hyperparameters is MLIP_HYPERS}")
+        logging.info("[DEBUG][RssMaker.make] Entering RssMaker.make()")
+        # Use self.rss_config.mlip_type instead of self.mlip_type
+        logging.info(f"[DEBUG][RssMaker.make] self.rss_config.mlip_type: {self.rss_config.mlip_type}")
+        logging.info(f"[DEBUG][RssMaker.make] hyperparameters type: {type(hyperparameters)}")
+        logging.info(f"[DEBUG][RssMaker.make] hyperparameters is MLIP_HYPERS default: {hyperparameters is MLIP_HYPERS}")
         
         pace_keys = {"cutoff", "seed", "metadata", "potential", "data", "fit", "backend"}
         pace_params_in_fit_kwargs = {k: v for k, v in fit_kwargs.items() if k in pace_keys}
-        logging.info(f"[DEBUG][MLIPFitMaker.make] P-ACE params in fit_kwargs: {pace_params_in_fit_kwargs}")
-        logging.info(f"[DEBUG][MLIPFitMaker.make] All fit_kwargs keys: {list(fit_kwargs.keys())}")
+        logging.info(f"[DEBUG][RssMaker.make] P-ACE params in fit_kwargs: {pace_params_in_fit_kwargs}")
+        logging.info(f"[DEBUG][RssMaker.make] All fit_kwargs keys: {list(fit_kwargs.keys())}")
         
         if hasattr(hyperparameters, 'P_ACE'):
-            logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters.P_ACE.cutoff: {hyperparameters.P_ACE.cutoff}")
+            logging.info(f"[DEBUG][RssMaker.make] hyperparameters.P_ACE.cutoff: {hyperparameters.P_ACE.cutoff}")
             if hasattr(hyperparameters.P_ACE, 'potential') and hyperparameters.P_ACE.potential:
-                logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters.P_ACE.potential: {hyperparameters.P_ACE.potential}")
+                logging.info(f"[DEBUG][RssMaker.make] hyperparameters.P_ACE.potential: {hyperparameters.P_ACE.potential}")
         logging.info("=" * 80)
         # ===== END DEBUG LOG =====
 
