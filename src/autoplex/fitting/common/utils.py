@@ -2382,6 +2382,27 @@ def pace_fitting(
     dict
         A dictionary containing 'train_error', 'test_error', and 'mlip_path'.
     """
+
+    # ===== DEBUG LOG =====
+    logging.info("=" * 80)
+    logging.info("[DEBUG][pace_fitting] Entering pace_fitting()")
+    logging.info(f"[DEBUG][pace_fitting] hyperparameters type: {type(hyperparameters)}")
+    
+    if hasattr(hyperparameters, 'cutoff'):
+        logging.info(f"[DEBUG][pace_fitting] hyperparameters.cutoff: {hyperparameters.cutoff}")
+    if hasattr(hyperparameters, 'seed'):
+        logging.info(f"[DEBUG][pace_fitting] hyperparameters.seed: {hyperparameters.seed}")
+    if hasattr(hyperparameters, 'potential'):
+        logging.info(f"[DEBUG][pace_fitting] hyperparameters.potential: {hyperparameters.potential}")
+    if hasattr(hyperparameters, 'fit'):
+        logging.info(f"[DEBUG][pace_fitting] hyperparameters.fit: {hyperparameters.fit}")
+    if hasattr(hyperparameters, 'backend'):
+        logging.info(f"[DEBUG][pace_fitting] hyperparameters.backend: {hyperparameters.backend}")
+    
+    logging.info(f"[DEBUG][pace_fitting] fit_kwargs: {fit_kwargs}")
+    logging.info("=" * 80)
+    # ===== END DEBUG LOG =====
+
     # Defensive copy of hyperparameters
     try:
         hyperparameters = hyperparameters.model_copy(deep=True)
@@ -2390,6 +2411,11 @@ def pace_fitting(
             hyperparameters = hyperparameters.copy()
         else:
             hyperparameters = PacemakerSettings()
+
+    # ===== DEBUG LOG =====
+    logging.info("[DEBUG][pace_fitting] After defensive copy")
+    # ===== END DEBUG LOG =====
+
     # 1. Prepare Data Conversion
     train_bin_name = "train.pckl.gzip"
     test_bin_name = "test.pckl.gzip"
@@ -2504,6 +2530,13 @@ def pace_fitting(
         k: v for k, v in pace_config.items() if k in allowed_top_level_keys
     }
 
+    # ===== DEBUG LOG =====
+    logging.info("=" * 80)
+    logging.info("[DEBUG][pace_fitting] FINAL pace_config to write to input.yaml:")
+    logging.info(f"{pace_config}")
+    logging.info("=" * 80)
+    # ===== END DEBUG LOG =====
+    
     # Write input.yaml
     dumpfn(pace_config, "input.yaml")
 

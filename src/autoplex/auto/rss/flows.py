@@ -11,7 +11,11 @@ from jobflow import Flow, Maker, Response, job
 from autoplex.auto.rss.jobs import do_rss_iterations, initial_rss
 from autoplex.misc.castep.jobs import CastepStaticMaker
 from autoplex.settings import RssConfig
+import logging
+import os.path as osp
+from pathlib import Path
 
+from autoplex.mlip import MLIP_HYPERS
 
 @dataclass
 class RssMaker(Maker):
@@ -81,7 +85,16 @@ class RssMaker(Maker):
     ) = None
 
     @job
-    def make(self, **kwargs):
+    def make(
+        self,
+        database_dir: Path | str | None = None,
+        fit_input: dict | None = None,
+        hyperparameters: MLIP_HYPERS = MLIP_HYPERS,
+        species_list: list | None = None,
+        isolated_atom_energies: dict | None = None,
+        device: str = "cpu",
+        **fit_kwargs,
+    ):
         """
         Make a rss workflow using the specified configuration file and additional keyword arguments.
 
@@ -291,6 +304,26 @@ class RssMaker(Maker):
             - 'current_iter': int, The current iteration index.
             - 'kb_temp': float, The temperature (in eV) for Boltzmann sampling.
         """
+
+        # ===== DEBUG LOG =====
+        logging.info("=" * 80)
+        logging.info("[DEBUG][MLIPFitMaker.make] Entering MLIPFitMaker.make()")
+        logging.info(f"[DEBUG][MLIPFitMaker.make] self.mlip_type: {self.mlip_type}")
+        logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters type: {type(hyperparameters)}")
+        logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters is MLIP_HYPERS default: {hyperparameters is MLIP_HYPERS}")
+        
+        pace_keys = {"cutoff", "seed", "metadata", "potential", "data", "fit", "backend"}
+        pace_params_in_fit_kwargs = {k: v for k, v in fit_kwargs.items() if k in pace_keys}
+        logging.info(f"[DEBUG][MLIPFitMaker.make] P-ACE params in fit_kwargs: {pace_params_in_fit_kwargs}")
+        logging.info(f"[DEBUG][MLIPFitMaker.make] All fit_kwargs keys: {list(fit_kwargs.keys())}")
+        
+        if hasattr(hyperparameters, 'P_ACE'):
+            logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters.P_ACE.cutoff: {hyperparameters.P_ACE.cutoff}")
+            if hasattr(hyperparameters.P_ACE, 'potential') and hyperparameters.P_ACE.potential:
+                logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters.P_ACE.potential: {hyperparameters.P_ACE.potential}")
+        logging.info("=" * 80)
+        # ===== END DEBUG LOG =====
+
         default_config = self.rss_config.model_copy(deep=True)
         if kwargs:
             default_config.update_parameters(kwargs)
@@ -300,7 +333,25 @@ class RssMaker(Maker):
         # Extract MLIP hyperparameters from the config_params
         mlip_hypers = config_params["mlip_hypers"][config_params["mlip_type"]]
         del config_params["mlip_hypers"]
+        
+        # ===== DEBUG LOG =====
+        logging.info("=" * 80)
+        logging.info("[DEBUG][RssMaker.make] STEP 1: After extracting mlip_hypers from config")
+        logging.info(f"[DEBUG][RssMaker.make] mlip_type: {config_params['mlip_type']}")
+        logging.info(f"[DEBUG][RssMaker.make] Extracted mlip_hypers keys: {list(mlip_hypers.keys())}")
+        logging.info(f"[DEBUG][RssMaker.make] mlip_hypers content:\n{mlip_hypers}")
+        logging.info("=" * 80)
+        # ===== END DEBUG LOG =====
+        
         config_params.update(mlip_hypers)
+        
+        # ===== DEBUG LOG =====
+        logging.info("[DEBUG][RssMaker.make] STEP 2: After config_params.update(mlip_hypers)")
+        pace_keys = {"cutoff", "seed", "metadata", "potential", "data", "fit", "backend"}
+        pace_params_in_config = {k: v for k, v in config_params.items() if k in pace_keys}
+        logging.info(f"[DEBUG][RssMaker.make] P-ACE related params in config_params: {pace_params_in_config}")
+        logging.info("=" * 80)
+        # ===== END DEBUG LOG =====
 
         self._process_hookean_paras(config_params)
 

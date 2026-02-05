@@ -286,6 +286,18 @@ def initial_rss(
         reg_minmax=reg_minmax,
         isolated_atom_energies=do_data_collection.output["isolated_atom_energies"],
     )
+
+    # ===== DEBUG LOG =====
+    logging.info("=" * 80)
+    logging.info("[DEBUG][initial_rss] About to call MLIPFitMaker.make()")
+    logging.info(f"[DEBUG][initial_rss] mlip_type: {mlip_type}")
+    pace_keys = {"cutoff", "seed", "metadata", "potential", "data", "fit", "backend"}
+    pace_params_in_fit_kwargs = {k: v for k, v in fit_kwargs.items() if k in pace_keys}
+    logging.info(f"[DEBUG][initial_rss] P-ACE params in fit_kwargs: {pace_params_in_fit_kwargs}")
+    logging.info(f"[DEBUG][initial_rss] All fit_kwargs keys: {list(fit_kwargs.keys())}")
+    logging.info("=" * 80)
+    # ===== END DEBUG LOG =====
+    
     do_mlip_fit = MLIPFitMaker(
         mlip_type=mlip_type,
         ref_energy_name=ref_energy_name,

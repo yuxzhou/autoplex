@@ -1,5 +1,6 @@
 """General fitting jobs using several MLIPs available."""
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +19,7 @@ from autoplex.fitting.common.utils import (
     nequip_fitting,
     pace_fitting,
 )
-
+from autoplex.settings import PacemakerSettings
 
 @job
 def machine_learning_fit(
@@ -88,6 +89,28 @@ def machine_learning_fit(
     fit_kwargs: dict
         Additional keyword arguments for MLIP fitting.
     """
+
+    # ===== DEBUG LOG =====
+    logging.info("=" * 80)
+    logging.info("[DEBUG][machine_learning_fit] Entering machine_learning_fit()")
+    logging.info(f"[DEBUG][machine_learning_fit] mlip_type: {mlip_type}")
+    logging.info(f"[DEBUG][machine_learning_fit] hyperparameters type: {type(hyperparameters)}")
+    logging.info(f"[DEBUG][machine_learning_fit] hyperparameters is MLIP_HYPERS default: {hyperparameters is MLIP_HYPERS}")
+    
+    pace_keys = {"cutoff", "seed", "metadata", "potential", "data", "fit", "backend"}
+    pace_params_in_fit_kwargs = {k: v for k, v in fit_kwargs.items() if k in pace_keys}
+    logging.info(f"[DEBUG][machine_learning_fit] P-ACE params in fit_kwargs: {list(pace_params_in_fit_kwargs.keys())}")
+    logging.info(f"[DEBUG][machine_learning_fit] fit_kwargs content for P-ACE:")
+    for k, v in pace_params_in_fit_kwargs.items():
+        logging.info(f"  {k}: {v}")
+    logging.info(f"[DEBUG][machine_learning_fit] All fit_kwargs keys: {list(fit_kwargs.keys())}")
+    
+    if hasattr(hyperparameters, 'P_ACE'):
+        logging.info(f"[DEBUG][machine_learning_fit] hyperparameters.P_ACE.cutoff: {hyperparameters.P_ACE.cutoff}")
+        logging.info(f"[DEBUG][machine_learning_fit] hyperparameters.P_ACE.seed: {hyperparameters.P_ACE.seed}")
+    logging.info("=" * 80)
+    # ===== END DEBUG LOG =====
+
     if run_fits_on_different_cluster:
 
         adapter = AseAtomsAdaptor()
@@ -159,31 +182,81 @@ def machine_learning_fit(
         mlip_paths.append(train_test_error["mlip_path"])
 
     elif mlip_type == "P-ACE":
+
+        # ===== DEBUG LOG =====
+        logging.info("=" * 80)
+        logging.info("[DEBUG][machine_learning_fit][P-ACE] Entered P-ACE branch")
+        # ===== END DEBUG LOG =====
+
         # For P-ACE, we need to reconstruct PacemakerSettings from fit_kwargs
         # because the hyperparameters passed here are the global defaults,
         # while the actual user config is in fit_kwargs (flattened from RssMaker)
         from autoplex.settings import PacemakerSettings
         
-        # Extract P-ACE specific parameters from fit_kwargs
+        # P-ACE specific top-level keys
         pace_specific_keys = {"cutoff", "seed", "metadata", "potential", "data", "fit", "backend"}
         pace_kwargs = {k: v for k, v in fit_kwargs.items() if k in pace_specific_keys}
+
+        # ===== DEBUG LOG =====
+        logging.info(f"[DEBUG][machine_learning_fit][P-ACE] pace_kwargs extracted from fit_kwargs:")
+        for k, v in pace_kwargs.items():
+            logging.info(f"  {k}: {v}")
+        logging.info(f"[DEBUG][machine_learning_fit][P-ACE] pace_kwargs is non-empty: {bool(pace_kwargs)}")
+        # ===== END DEBUG LOG =====
         
-        # If user provided P-ACE params via fit_kwargs, use them to create PacemakerSettings
         if pace_kwargs:
-            # Create a new PacemakerSettings with user's config
-            pace_hypers = PacemakerSettings(**pace_kwargs)
+            # User provided P-ACE params via fit_kwargs (from YAML config)
+            # Update the default hyperparameters.P_ACE with user values
+            pace_hypers = hyperparameters.P_ACE.model_copy(deep=True)
+
+            # ===== DEBUG LOG =====
+            logging.info(f"[DEBUG][machine_learning_fit][P-ACE] BEFORE update_parameters:")
+            logging.info(f"  pace_hypers.cutoff: {pace_hypers.cutoff}")
+            logging.info(f"  pace_hypers.seed: {pace_hypers.seed}")
+            if hasattr(pace_hypers, 'potential') and pace_hypers.potential:
+                logging.info(f"  pace_hypers.potential: {pace_hypers.potential}")
+            if hasattr(pace_hypers, 'fit') and pace_hypers.fit:
+                logging.info(f"  pace_hypers.fit: {pace_hypers.fit}")
+            # ===== END DEBUG LOG =====
+
+            pace_hypers.update_parameters(pace_kwargs)
+
+            # ===== DEBUG LOG =====
+            logging.info(f"[DEBUG][machine_learning_fit][P-ACE] AFTER update_parameters:")
+            logging.info(f"  pace_hypers.cutoff: {pace_hypers.cutoff}")
+            logging.info(f"  pace_hypers.seed: {pace_hypers.seed}")
+            if hasattr(pace_hypers, 'potential') and pace_hypers.potential:
+                logging.info(f"  pace_hypers.potential: {pace_hypers.potential}")
+            if hasattr(pace_hypers, 'fit') and pace_hypers.fit:
+                logging.info(f"  pace_hypers.fit: {pace_hypers.fit}")
+            # ===== END DEBUG LOG =====
         else:
-            # Fall back to the hyperparameters.P_ACE (default or user-provided via hyperparameters arg)
+            # Fall back to hyperparameters.P_ACE
             pace_hypers = hyperparameters.P_ACE
+
+            # ===== DEBUG LOG =====
+            logging.info(f"[DEBUG][machine_learning_fit][P-ACE] Using default hyperparameters.P_ACE (no pace_kwargs)")
+            logging.info(f"  pace_hypers.cutoff: {pace_hypers.cutoff}")
+            # ===== END DEBUG LOG =====
         
-        # Filter out P-ACE specific keys from fit_kwargs to avoid double-processing
+        # Filter out P-ACE specific keys from fit_kwargs
         remaining_fit_kwargs = {k: v for k, v in fit_kwargs.items() if k not in pace_specific_keys}
         
+        # ===== DEBUG LOG =====
+        logging.info(f"[DEBUG][machine_learning_fit][P-ACE] Final pace_hypers to pass to pace_fitting:")
+        try:
+            pace_hypers_dict = pace_hypers.model_dump(by_alias=True, exclude_none=True)
+            logging.info(f"  Full pace_hypers dict: {pace_hypers_dict}")
+        except Exception as e:
+            logging.info(f"  Could not dump pace_hypers: {e}")
+        logging.info("=" * 80)
+        # ===== END DEBUG LOG =====
+
         train_test_error = pace_fitting(
             db_dir=database_dir,
             species_list=species_list,
             hyperparameters=pace_hypers,
-            fit_kwargs=remaining_fit_kwargs,  # Pass only non-P-ACE params
+            fit_kwargs=remaining_fit_kwargs,
             isolated_atom_energies=isolated_atom_energies,
             ref_energy_name=ref_energy_name,
             ref_force_name=ref_force_name,
