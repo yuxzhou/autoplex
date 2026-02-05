@@ -698,6 +698,18 @@ def do_rss_iterations(
             reg_minmax=reg_minmax,
             isolated_atom_energies=input["isolated_atom_energies"],
         )
+        
+        # ===== DEBUG LOG (Added to do_rss_iterations) =====
+        logging.info("=" * 80)
+        logging.info(f"[DEBUG][do_rss_iterations] Iteration {current_iter}: About to call MLIPFitMaker.make()")
+        logging.info(f"[DEBUG][do_rss_iterations] mlip_type: {mlip_type}")
+        pace_keys = {"cutoff", "seed", "metadata", "potential", "data", "fit", "backend"}
+        pace_params_in_fit_kwargs = {k: v for k, v in fit_kwargs.items() if k in pace_keys}
+        logging.info(f"[DEBUG][do_rss_iterations] P-ACE params in fit_kwargs: {pace_params_in_fit_kwargs}")
+        logging.info(f"[DEBUG][do_rss_iterations] All fit_kwargs keys: {list(fit_kwargs.keys())}")
+        logging.info("=" * 80)
+        # ===== END DEBUG LOG =====
+
         do_mlip_fit = MLIPFitMaker(
             mlip_type=mlip_type,
             ref_energy_name=ref_energy_name,

@@ -143,6 +143,22 @@ class MLIPFitMaker(Maker):
         fit_kwargs: dict
             Additional keyword arguments for MLIP fitting.
         """
+
+        # ===== DEBUG LOG =====
+        logging.info("=" * 80)
+        logging.info("[DEBUG][MLIPFitMaker.make] Entering MLIPFitMaker.make()")
+        logging.info(f"[DEBUG][MLIPFitMaker.make] self.mlip_type: {self.mlip_type}")
+
+        pace_keys = {"cutoff", "seed", "metadata", "potential", "data", "fit", "backend"}
+        pace_params_in_fit_kwargs = {k: v for k, v in fit_kwargs.items() if k in pace_keys}
+        logging.info(f"[DEBUG][MLIPFitMaker.make] P-ACE params in fit_kwargs: {pace_params_in_fit_kwargs}")
+
+        if hasattr(hyperparameters, "P_ACE"):
+            if hasattr(hyperparameters.P_ACE, "cutoff"):
+                logging.info(f"[DEBUG][MLIPFitMaker.make] hyperparameters.P_ACE.cutoff: {hyperparameters.P_ACE.cutoff}")
+        logging.info("=" * 80)
+        # ===== END DEBUG LOG =====
+
         if self.mlip_type not in ["GAP", "J-ACE", "P-ACE", "NEP", "NEQUIP", "M3GNET", "MACE"]:
             raise ValueError(
                 "Please correct the MLIP name!"
